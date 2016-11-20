@@ -115,11 +115,15 @@ subtract second first =
 
 
 {-| Scale the value(s) in the second argument by the factor given as the first
-argument, or return an error message if the argument contains one or more
-non-numeric values.
+argument, or return an error message if one or more of the values is of an
+incompatible type.
 
 The argument may be a `Sides` or `Multiple` value, which will return a `Sides`
-or `Multiple` containing the scaled unit values.
+or `Multiple` containing the scaled unit values. If a `Multiple` contains both
+numeric and non-numeric values, the numeric portion may be scaled using this
+function, which will leave the non-numeric values unchanged. This behavior is
+different from `add` and `subtract`, which will return an error if the
+arguments contain any non-numeric values.
 
     Unit 2 Em
       |> scale 0.5
@@ -130,36 +134,50 @@ or `Multiple` containing the scaled unit values.
       |> scale 0.5
 
     --> Ok (Sides [Unit 6 Px, Unit 1 Em])
+
+    Multiple " " [Unit 1 Px, Str "dashed", Col Color.red]
+      |> scale 2
+
+    --> Ok (Multiple " " [Unit 2 Px, Str "dashed", Col (RGBA 204 0 0 1)])
 -}
 scale : number -> CssValue number -> Result String (CssValue number)
 scale factor value =
-  case value of
-    Num number ->
-      (number, factor)
-      @@|> (*)
-        |> Num
-        |> Ok
-
-    Unit number unitType ->
-      (number, factor)
-      @@|> (*)
-        |> toUnit unitType
-        |> Ok
-
-    Sides values ->
+  let
+    allNonNumeric values =
       values
-       .|> scale factor
-        |> Helpers.resultList errorMsg
-       !|> Sides
+       .|> toNumber
+       .|> Result.toMaybe
+        |> List.all (\v -> v == Nothing)
 
-    Multiple separator values ->
-      values
-       .|> scale factor
-        |> Helpers.resultList errorMsg
-       !|> Multiple separator
+  in
+    case value of
+      Num number ->
+        (number, factor)
+        @@|> (*)
+          |> Num
+          |> Ok
 
-    _ ->
-      Err errorMsg
+      Unit number unitType ->
+        (number, factor)
+        @@|> (*)
+          |> toUnit unitType
+          |> Ok
+
+      Sides values ->
+        values
+         .|> scale factor
+          |> Helpers.resultList errorMsg
+         !|> Sides
+
+      Multiple separator values ->
+        if values |> allNonNumeric then errorMsg |> Err
+        else values |> Ok
+         !|> List.map (\v -> v |> scale factor != v)
+         !|> Multiple separator
+
+      _ ->
+        errorMsg
+          |> Err
 
 
 {-| Given a tuple of `Num` or `Unit` values, calculate the ratio of the first
