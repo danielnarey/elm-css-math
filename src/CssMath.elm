@@ -92,7 +92,7 @@ without producing an error.
     --> Err ".."
 
 -}
-add : CssValue number -> CssValue number -> Result String (CssValue number)
+add : CssValue -> CssValue -> Result String CssValue
 add second first =
   (first, second)
     |> numOp (+)
@@ -108,7 +108,7 @@ documentation for `add`.
 
     --> Ok (Unit 46 Px)
 -}
-subtract : CssValue number -> CssValue number -> Result String (CssValue number)
+subtract : CssValue -> CssValue -> Result String CssValue
 subtract second first =
   (first, second)
     |> numOp (-)
@@ -140,7 +140,7 @@ arguments contain any non-numeric values.
 
     --> Ok (Multiple " " [Unit 2 Px, Str "dashed", Col (RGBA 204 0 0 1)])
 -}
-scale : number -> CssValue number -> Result String (CssValue number)
+scale : Float -> CssValue -> Result String CssValue
 scale factor value =
   let
     allNonNumeric values =
@@ -197,7 +197,7 @@ Type compatibility works the same as for `add` and `subtract`, but `Sides` and
 
     --> Ok 0
 -}
-ratio : (CssValue Float, CssValue Float) -> Result String Float
+ratio : (CssValue, CssValue) -> Result String Float
 ratio (first, second) =
   (first, second)
     |> numOp (/)
@@ -210,7 +210,7 @@ ratio (first, second) =
 generic function called by `add` and `subtract`, so see the documentation above
 for details on type compatibility.
 -}
-numOp : (number -> number -> number) -> (CssValue number, CssValue number) -> Result String (CssValue number)
+numOp : (Float -> Float -> Float) -> (CssValue, CssValue) -> Result String CssValue
 numOp op (first, second) =
   case (first, second) of
     (Num n1, Num n2) ->
@@ -291,7 +291,7 @@ or `Multiple` with the converted unit values. `Num 0` will convert to
     --> Err ".."
 
 -}
-absToPx : CssValue number -> Result String (CssValue number)
+absToPx : CssValue -> Result String CssValue
 absToPx value =
   let
     convertToPx fromUnit number =
@@ -386,7 +386,7 @@ or `Multiple` with the converted unit values. `Num 0` will convert to
 
     --> Ok (Unit 16 Px)
 -}
-relToPx : Float -> CssValue Float -> Result String (CssValue Float)
+relToPx : Float -> CssValue -> Result String CssValue
 relToPx base value =
   let
     multiply values =
@@ -492,7 +492,7 @@ or `Multiple` with the converted unit values. `Num 0` will convert to
 
     --> Ok (Unit 60 Px)
 -}
-vpRelToPx : (Float, Float) -> CssValue Float -> Result String (CssValue Float)
+vpRelToPx : (Float, Float) -> CssValue -> Result String CssValue
 vpRelToPx (width, height) value =
   let
     multiply values =
@@ -578,7 +578,7 @@ or `Multiple` with the converted unit values. `Num 0` will convert to
 
     --> Ok (Unit 0.75 Rem)
 -}
-absToRem : Float -> CssValue Float -> Result String (CssValue Float)
+absToRem : Float -> CssValue -> Result String CssValue
 absToRem baseFontSize value =
   case value of
     Num number ->
@@ -623,7 +623,7 @@ absToRem baseFontSize value =
 
 {-| Convenience function to convert a number to a `Unit`
 -}
-toUnit : UnitType -> number -> CssValue number
+toUnit : UnitType -> Float -> CssValue
 toUnit unitType number =
   Unit number unitType
 
@@ -631,7 +631,7 @@ toUnit unitType number =
 {-| Extracts the numeric part of a `Num` or `Unit` value, or returns an error
 message if the `CssValue` is not a `Num` or `Unit`
 -}
-toNumber : CssValue number -> Result String number
+toNumber : CssValue -> Result String Float
 toNumber value =
   case value of
     Num number ->
@@ -651,17 +651,17 @@ toNumber value =
 containing a single number from a `Num` or `Unit`. Returns an error message if
 any of the values are non-numeric.
 -}
-toNumberList : CssValue number -> Result String (List number)
+toNumberList : CssValue -> Result String (List Float)
 toNumberList value =
   case value of
     Num number ->
       number
-        |> Helpers.wrapList
+        |> List.singleton
         |> Ok
 
     Unit number unitType ->
       number
-        |> Helpers.wrapList
+        |> List.singleton
         |> Ok
 
     Sides list ->
@@ -684,7 +684,7 @@ non-zero value or a `Sides` or `Multiple` value containing at least one
 non-zero value. Returns an error message if the argument contains one or more
 non-numeric values.
 -}
-isNonZero : CssValue number -> Result String Bool
+isNonZero : CssValue -> Result String Bool
 isNonZero value =
   case value of
     Num number ->
