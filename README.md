@@ -1,3 +1,7 @@
+# Not updated for Elm 0.19
+
+---
+
 ## Arithmetic and unit conversions with CSS values
 
 This library extends `CssBasics` by providing helpers for dealing with numeric
